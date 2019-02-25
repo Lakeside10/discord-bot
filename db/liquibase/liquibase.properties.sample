@@ -1,0 +1,7 @@
+changeLogFile = changelog.xml
+url = jdbc:postgresql://example.com:5432/example
+username = user
+password = pass
+logLevel = severe
+driver = org.postgresql.Driver
+contexts = dev

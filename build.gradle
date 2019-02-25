@@ -1,0 +1,109 @@
+buildscript {
+    repositories {
+        mavenCentral()
+    }
+
+    dependencies {
+        classpath 'org.postgresql:postgresql:42.1.4'
+    }
+}
+
+plugins {
+    id 'org.liquibase.gradle' version '1.2.4'
+}
+
+apply plugin: 'java'
+apply plugin: 'application'
+
+repositories {
+    mavenCentral()
+    jcenter() //This prevents issues with transitive dependencies
+    maven {
+        url "https://jitpack.io"
+    }
+}
+
+project.ext.logbackDep = 'ch.qos.logback:logback-classic:1.1.9'
+project.ext.slf4jDep = 'org.slf4j:slf4j-api:1.7.22'
+project.ext.lombokDep = 'org.projectlombok:lombok:1.16.6'
+
+mainClassName = 'taneltomson.discord.BotApplication'
+
+System.setProperty("logDir", "~/logs/")
+
+dependencies {
+    compileOnly lombokDep
+
+    compile 'javax:javaee-api:8.0'
+
+    // discord api
+    compile 'com.github.austinv11:Discord4J:2.10.1'
+
+    // database
+    compile group: 'org.hibernate', name: 'hibernate-core', version: '5.2.12.Final'
+    compile group: 'org.hibernate', name: 'hibernate-entitymanager', version: '5.2.12.Final'
+    compile 'org.postgresql:postgresql:42.1.4'
+
+    // web scraping
+    compile 'org.jsoup:jsoup:1.11.3'
+
+    // logging
+    compile slf4jDep
+    compile logbackDep
+
+    // testing
+    testCompileOnly lombokDep
+    testCompile 'junit:junit:4.12'
+    testCompile 'org.mockito:mockito-core:2.24.5'
+
+    // testing database
+    testCompile 'com.h2database:h2:1.4.196'
+    testCompile group: 'org.liquibase', name: 'liquibase-core', version: '3.5.3'
+}
+
+jar {
+    manifest {
+        attributes('Main-Class': mainClassName)
+    }
+}
+
+sourceSets {
+    main {
+        resources {
+            srcDirs "src/main/resources"
+        }
+    }
+
+    test {
+        resources {
+            srcDir 'src/test/resources'
+            srcDir "db/liquibase"
+        }
+    }
+}
+
+test.outputs.upToDateWhen { false }
+
+task copyProps(type: Copy) {
+    from "$project.projectDir/bot.properties"
+    into "$project.buildDir/resources/main"
+}
+
+processResources.dependsOn copyProps
+
+Properties lb = new Properties()
+lb.load(new FileInputStream(file("db/liquibase/liquibase.properties").exists()
+        ? file("db/liquibase/liquibase.properties")
+        : file("db/liquibase/liquibase.properties.sample")))
+
+liquibase {
+    activities {
+        main {
+            changeLogFile 'db/liquibase/changelog.xml'
+            url lb.url
+            username lb.username
+            password lb.password
+            contexts lb.contexts
+        }
+    }
+}

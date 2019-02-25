@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.1.xsd">
+
+    <!-- constraint naming scheme: <constraint name>_<abbr. table name> -->
+
+    <changeSet id="20180406_1" author="tanel.tomzon@gmail.com" context="dev">
+        <createTable tableName="command">
+            <column name="id" type="BIGINT">
+                <constraints primaryKey="true"
+                             nullable="false"/>
+            </column>
+            <column name="call_key" type="TEXT">
+                <constraints unique="true"
+                             nullable="false"/>
+            </column>
+            <column name="value" type="TEXT">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created" type="DATE">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+        <createSequence sequenceName="command_seq" startValue="1" incrementBy="1"/>
+    </changeSet>
+    <changeSet id="20180406_2" author="tanel.tomzon@gmail.com" context="test">
+        <createTable tableName="command">
+            <column name="id" type="BIGINT">
+                <constraints primaryKey="true"
+                             nullable="false"/>
+            </column>
+            <column name="call_key" type="TEXT">
+                <constraints nullable="false"/>
+            </column>
+            <column name="value" type="TEXT">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created" type="DATE">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+        <createSequence sequenceName="command_seq" startValue="1" incrementBy="1"/>
+    </changeSet>
+</databaseChangeLog>

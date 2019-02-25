@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+                   xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                   xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+                        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.5.xsd">
+    <property name="schema_name" value="bot"/>
+    <property name="app_role"    value="bot_app"/>
+
+    <changeSet author="LBContextCheck" id="0" runAlways="true" context="LBPseudoContext">
+        <preConditions onFail="HALT" onFailMessage="contexts not set. Please run liquibase with contexts parameter">
+            <sqlCheck expectedResult="0">select 'LBPseudoContext'</sqlCheck>
+        </preConditions>
+    </changeSet>
+
+    <include file="changesets/initial_state.xml" relativeToChangelogFile="true"/>
+
+    <!-- NB! The grants block must ALWAYS be the last changeset! Add new changesets above this line! -->
+    <!--<include file="changesets/app_grants.xml"  relativeToChangelogFile="true"/>-->
+    <!-- NB! Do not add new changesets after this line! -->
+</databaseChangeLog>

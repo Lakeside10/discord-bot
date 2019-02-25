@@ -1,0 +1,8 @@
+build/
+.idea
+gradlew.bat
+.gradle
+*.properties
+persistence.xml
+
+!gradle-wrapper.properties
