@@ -40,13 +40,28 @@ public class WatchPointsTimerTaskTest {
     @Test
     public void testWinningAMatch() {
         assertResponseWasSent(deepCopyAndAddPointsToEight(10),
-                              "We won a match and gained 80.0 points.");
+                              "WIN! We won a match. We gained 80.0 points.");
     }
 
     @Test
     public void testLosingAMatch() {
         assertResponseWasSent(deepCopyAndAddPointsToEight(-10),
-                              "We lost a match and lost 80.0 points.");
+                              "LOSS! We lost a match. We lost 80.0 points.");
+    }
+
+    @Test
+    public void testLosingAMatchWithPlayersOnNoPoints() {
+        assertResponseWasSent(deepCopyAndAddPointsTo(-10, 7),
+                              "LOSS! We lost a match. We lost 70.0 points.");
+
+        assertResponseWasSent(deepCopyAndAddPointsTo(-10, 1),
+                              "LOSS! We lost a match. We lost 10.0 points.");
+    }
+
+    @Test
+    public void testMultipleMatchesPlayed() {
+        assertResponseWasSent(deepCopyAndAddPointsTo(20, 16),
+                              "Multiple games were played. We gained 320.0 points.");
     }
 
     @Test
@@ -66,7 +81,8 @@ public class WatchPointsTimerTaskTest {
 
         assertResponseWasSent(newMemberInfos,
                               noPointsMember.getDiscordEscapedName()
-                                      + " is no longer in the squadron. We lost no points.");
+                                      + " is no longer in the squadron. They held 0 points. We "
+                                      + "lost no points.");
     }
 
     @Test
@@ -78,7 +94,8 @@ public class WatchPointsTimerTaskTest {
 
         assertResponseWasSent(newMemberInfos,
                               memberWithPoints.getDiscordEscapedName()
-                                      + " is no longer in the squadron. We lost 100.0 points.");
+                                      + " is no longer in the squadron. They held 100 points. We "
+                                      + "lost 100.0 points.");
     }
 
     private MemberInfo getMemberWithPointsAmount(List<MemberInfo> list, int points) {
@@ -99,22 +116,36 @@ public class WatchPointsTimerTaskTest {
      * @return
      */
     private List<MemberInfo> deepCopyAndAddPointsToEight(int pointsToAdd) {
-        final List<MemberInfo> memberInfosAfterWin = deepCopy(memberInfosBefore);
+        return deepCopyAndAddPointsTo(pointsToAdd, 8);
+    }
+
+    /**
+     * Creates a deep copy of previous member infos and adds (or substracts) points from
+     * members. Deep copy is made to avoid changing already saved {@link MemberInfo} objects in
+     * {@link SquibsPointsWatcher}.
+     *
+     * @param pointsToAdd            points to add (negative to subtract)
+     * @param numberOfPlayersToAddTo number of players whose points to alter
+     * @return
+     */
+    private List<MemberInfo> deepCopyAndAddPointsTo(int pointsToAdd, int numberOfPlayersToAddTo) {
+        final List<MemberInfo> newMemberInfos = deepCopy(memberInfosBefore);
 
         final Supplier<Stream<MemberInfo>> supplier =
-                () -> memberInfosAfterWin.stream()
-                                         .filter(i -> i.getSquibsPoints() >= -pointsToAdd)
-                                         .limit(8);
+                () -> newMemberInfos.stream()
+                                    .filter(i -> i.getSquibsPoints() >= -pointsToAdd)
+                                    .limit(numberOfPlayersToAddTo);
 
-        if (supplier.get().count() < 8) {
+        if (supplier.get().count() < numberOfPlayersToAddTo) {
             throw new RuntimeException("Tests set up incorrectly - not enough suitable members to "
-                                               + "apply points change to.");
+                                               + "apply points change to. Needed " +
+                                               numberOfPlayersToAddTo + " players.");
         }
 
         supplier.get()
                 .forEach(i -> i.setSquibsPoints(i.getSquibsPoints() + pointsToAdd));
 
-        return memberInfosAfterWin;
+        return newMemberInfos;
     }
 
     private List<MemberInfo> createSquadronMemberInfos() {
@@ -123,6 +154,13 @@ public class WatchPointsTimerTaskTest {
                              createMemberWithPoints(100),
                              createMemberWithPoints(100),
                              createMemberWithPoints(100),
+                             createMemberWithPoints(0),
+                             createMemberWithPoints(0),
+                             createMemberWithPoints(0),
+                             createMemberWithPoints(0),
+                             createMemberWithPoints(0),
+                             createMemberWithPoints(0),
+                             createMemberWithPoints(0),
                              createMemberWithPoints(0),
                              createMemberWithPoints(100),
                              createMemberWithPoints(100),

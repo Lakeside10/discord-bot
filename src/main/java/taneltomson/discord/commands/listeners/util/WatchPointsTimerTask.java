@@ -106,6 +106,7 @@ public class WatchPointsTimerTask extends TimerTask {
 
         final StringBuilder response = new StringBuilder();
         int numberOfChanges = 0;
+        int numberOfPlayersLeft = 0;
 
         for (MemberInfo lastMemberInfo : lastMemberInfos) {
             log.debug("watchPoints - Checking points for player: {}", lastMemberInfo.getName());
@@ -130,25 +131,33 @@ public class WatchPointsTimerTask extends TimerTask {
             } else {
                 log.debug("watchPoints - Player {} not in new data - member no longer with us.",
                           lastMemberInfo.getName());
-                numberOfChanges += 1;
+                numberOfPlayersLeft += 1;
 
                 response.append(lastMemberInfo.getName())
-                        .append(" is no longer in the squadron. We lost ");
+                        .append(" is no longer in the squadron. They held ")
+                        .append(lastMemberInfo.getSquibsPoints())
+                        .append(" points.");
             }
         }
 
         log.debug("watchPoints - numberOfChanges: {}", numberOfChanges);
 
-        if (numberOfChanges != 0) {
-            if (numberOfChanges >= 8) { // At least 1 match was played
+        if (numberOfChanges > 0 || numberOfPlayersLeft > 0) { // Something happened
+            if (numberOfChanges > 0 && numberOfChanges <= 8) { // 1 match played
                 if (squadronPointsDiff > 0) {
-                    response.append("We won a match and gained ");
+                    response.append("WIN! We won a match.");
                 } else {
-                    response.append("We lost a match and lost ");
+                    response.append("LOSS! We lost a match.");
                 }
+            } else if (numberOfChanges > 8) { // More than one match was played
+                response.append("Multiple games were played.");
             }
 
-            response.append((squadronPointsDiff == 0)
+            response.append(" We ")
+                    .append((squadronPointsDiff > 0)
+                                    ? "gained "
+                                    : "lost ")
+                    .append((squadronPointsDiff == 0)
                                     ? "no"
                                     : String.format("%.1f", Math.abs(squadronPointsDiff)))
                     .append(" points.");
