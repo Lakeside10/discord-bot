@@ -142,28 +142,36 @@ public class WatchPointsTimerTask extends TimerTask {
 
         log.debug("watchPoints - numberOfChanges: {}", numberOfChanges);
 
-        if (numberOfChanges > 0 || numberOfPlayersLeft > 0) { // Something happened
-            if (numberOfChanges > 0 && numberOfChanges <= 8) { // 1 match played
-                if (squadronPointsDiff > 0) {
-                    response.append("WIN! We won a match.");
-                } else {
-                    response.append("LOSS! We lost a match.");
+        if (numberOfChanges > 30 || numberOfPlayersLeft > 5
+                || Math.abs(squadronPointsDiff) > 3000) {
+            log.info("Triggering safeguard. numberOfChanges: {}, numberOfPlayersLeft: {}, "
+                             + "squadronPointsDiff: {}",
+                     numberOfChanges, numberOfPlayersLeft, squadronPointsDiff);
+            sendResponse("Either I got Gaijined or season reset?");
+        } else {
+            if (numberOfChanges > 0 || numberOfPlayersLeft > 0) { // Something happened
+                if (numberOfChanges > 0 && numberOfChanges <= 8) { // 1 match played
+                    if (squadronPointsDiff > 0) {
+                        response.append("WIN! We won a match.");
+                    } else {
+                        response.append("LOSS! We lost a match.");
+                    }
+                } else if (numberOfChanges > 8) { // More than one match was played
+                    response.append("Multiple games were played.");
                 }
-            } else if (numberOfChanges > 8) { // More than one match was played
-                response.append("Multiple games were played.");
+
+                response.append(" We ")
+                        .append((squadronPointsDiff > 0)
+                                        ? "gained "
+                                        : "lost ")
+                        .append((squadronPointsDiff == 0)
+                                        ? "no"
+                                        : String.format("%.1f", Math.abs(squadronPointsDiff)))
+                        .append(" points.");
+
+                log.debug("watchPoints - Sending response: {}", response.toString());
+                sendResponse(response.toString());
             }
-
-            response.append(" We ")
-                    .append((squadronPointsDiff > 0)
-                                    ? "gained "
-                                    : "lost ")
-                    .append((squadronPointsDiff == 0)
-                                    ? "no"
-                                    : String.format("%.1f", Math.abs(squadronPointsDiff)))
-                    .append(" points.");
-
-            log.debug("watchPoints - Sending response: {}", response.toString());
-            sendResponse(response.toString());
         }
 
         lastSquadronPoints = calculateSquadronPoints(newMemberInfos);
