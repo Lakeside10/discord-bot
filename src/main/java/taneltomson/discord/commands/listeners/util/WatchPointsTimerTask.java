@@ -263,7 +263,7 @@ public class WatchPointsTimerTask extends TimerTask {
     }
 
     protected void sendResponse(String message) {
-        // MessageHelper.sendMessage(client.getChannelByID(402693205818081280L), message);
+        MessageHelper.sendMessage(client.getChannelByID(402693205818081280L), message);
         MessageHelper.sendMessage(client.getChannelByID(BOT_TEST_TEXT_ID), message);
     }
 
