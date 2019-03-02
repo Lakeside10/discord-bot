@@ -1,14 +1,19 @@
 package taneltomson.discord.commands.listeners.util;
 
 
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
 import java.util.TimerTask;
+import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
+import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import sx.blah.discord.api.IDiscordClient;
+import taneltomson.discord.util.MessageHelper;
 import taneltomson.discord.util.web.WTWebsiteScraper;
 import taneltomson.discord.util.web.data.MemberInfo;
 
@@ -19,9 +24,10 @@ import static taneltomson.discord.data.ChannelIds.BOT_TEST_TEXT_ID;
 public class WatchPointsTimerTask extends TimerTask {
     private static int FAILURES_IN_A_ROW = 0;
     private static boolean PREVIOUS_FAILED = false;
-
     private final WTWebsiteScraper scraper = new WTWebsiteScraper();
     private final IDiscordClient client;
+    @Getter private Integer sessionWins = 0;
+    @Getter private Integer sessionLosses = 0;
     private List<MemberInfo> lastMemberInfos = null;
     private Double lastSquadronPoints = null;
 
@@ -83,8 +89,30 @@ public class WatchPointsTimerTask extends TimerTask {
         return squadronPoints;
     }
 
+    public void setSessionWins(int wins) {
+        sessionWins = wins;
+        sendSessionWinLossResponse(true);
+    }
+
+    public void setSessionLosses(int losses) {
+        sessionLosses = losses;
+        sendSessionWinLossResponse(true);
+    }
+
     public void watchPoints(List<MemberInfo> newMemberInfos) {
         log.debug("watchPoints - Watching points. Last we had: {}", lastSquadronPoints);
+
+        if (sessionWins != 0 && sessionLosses != 0) {
+            final int gmtHourNow = ZonedDateTime.now(ZoneId.of("GMT")).getHour();
+            log.debug("gmtHourNow: {}", gmtHourNow);
+            // SQB runs 14-22 GMT (EU) and 01-07 GMT (US)
+            if (gmtHourNow == 23 || gmtHourNow == 8) {
+                log.debug("Resetting session wins and losses");
+                sessionLosses = 0;
+                sessionWins = 0;
+                sendSessionWinLossResponse(true);
+            }
+        }
 
         if (lastMemberInfos == null || lastSquadronPoints == null) {
             lastSquadronPoints = calculateSquadronPoints(newMemberInfos);
@@ -104,9 +132,9 @@ public class WatchPointsTimerTask extends TimerTask {
             log.debug("watchPoints - New member info: {}", newMemberInfos);
         }
 
+        final SqbPointChanges changes = new SqbPointChanges();
         final StringBuilder response = new StringBuilder();
-        int numberOfChanges = 0;
-        int numberOfPlayersLeft = 0;
+        int numberOfPlayersLeftOrRenamed = 0;
 
         for (MemberInfo lastMemberInfo : lastMemberInfos) {
             log.debug("watchPoints - Checking points for player: {}", lastMemberInfo.getName());
@@ -118,46 +146,78 @@ public class WatchPointsTimerTask extends TimerTask {
             if (newInfoOnMemberOptional.isPresent()) {
                 final MemberInfo newInfoOnMember = newInfoOnMemberOptional.get();
                 final int memberDiff =
-                        lastMemberInfo.getSquibsPoints() - newInfoOnMember.getSquibsPoints();
+                        newInfoOnMember.getSquibsPoints() - lastMemberInfo.getSquibsPoints();
 
                 if (memberDiff != 0) {
+                    changes.addChange(new PointChange(lastMemberInfo, newInfoOnMember));
+
+                    // TODO: Move logging to PointChange?
                     log.debug("watchPoints - SQBPointsLog - before: {}, now: {}, diff: {}, "
                                       + "player: {}",
                               lastMemberInfo.getSquibsPoints(),
                               newInfoOnMember.getSquibsPoints(),
                               memberDiff, newInfoOnMember.getName());
-                    numberOfChanges += 1;
                 }
             } else {
-                log.debug("watchPoints - Player {} not in new data - member no longer with us.",
-                          lastMemberInfo.getName());
-                numberOfPlayersLeft += 1;
+                log.debug("watchPoints - Player {} not in new data - member no longer with us or "
+                                  + "changed name", lastMemberInfo.getName());
 
-                response.append(lastMemberInfo.getName())
-                        .append(" is no longer in the squadron. They held ")
-                        .append(lastMemberInfo.getSquibsPoints())
-                        .append(" points.");
+                final Optional<MemberInfo> playerWithSamePointsNotInLastUpdate = newMemberInfos
+                        .stream()
+                        .filter(newInfo -> lastMemberInfo.getSquibsPoints()
+                                                         .equals(newInfo.getSquibsPoints()))
+                        .filter(memberNotInLastUpdate(lastMemberInfos))
+                        .findFirst();
+
+                if (playerWithSamePointsNotInLastUpdate.isPresent()) {
+                    final MemberInfo renamedPlayer = playerWithSamePointsNotInLastUpdate.get();
+                    response.append(lastMemberInfo.getDiscordEscapedName())
+                            .append(" has changed their in game name to ")
+                            .append(renamedPlayer.getDiscordEscapedName())
+                            .append(".");
+                    numberOfPlayersLeftOrRenamed += 1;
+                } else {
+                    numberOfPlayersLeftOrRenamed += 1;
+
+                    response.append(lastMemberInfo.getDiscordEscapedName())
+                            .append(" is no longer in the squadron. They held ")
+                            .append(lastMemberInfo.getSquibsPoints())
+                            .append(" points.");
+                }
             }
         }
 
-        log.debug("watchPoints - numberOfChanges: {}", numberOfChanges);
+        log.debug("watchPoints - numberOfChanges: {}", changes.getNumberOfChanges());
 
-        if (numberOfChanges > 30 || numberOfPlayersLeft > 5
+        if (changes.getNumberOfChanges() > 30 || numberOfPlayersLeftOrRenamed > 10
                 || Math.abs(squadronPointsDiff) > 3000) {
-            log.info("Triggering safeguard. numberOfChanges: {}, numberOfPlayersLeft: {}, "
+            log.info("Triggering safeguard. numberOfChanges: {}, numberOfPlayersLeftOrRenamed: {}, "
                              + "squadronPointsDiff: {}",
-                     numberOfChanges, numberOfPlayersLeft, squadronPointsDiff);
+                     changes.getNumberOfChanges(), numberOfPlayersLeftOrRenamed,
+                     squadronPointsDiff);
             sendResponse("Either I got Gaijined or season reset?");
         } else {
-            if (numberOfChanges > 0 || numberOfPlayersLeft > 0) { // Something happened
-                if (numberOfChanges > 0 && numberOfChanges <= 8) { // 1 match played
-                    if (squadronPointsDiff > 0) {
+            if (changes.getNumberOfChanges() > 0 || numberOfPlayersLeftOrRenamed > 0) {
+                if (changes.getNumberOfWins() > 0) {
+                    sessionWins += changes.getNumberOfWins();
+
+                    for (int i = 0; i < changes.getNumberOfWins(); i++) {
+                        if (i >= 1) {
+                            response.append("\n");
+                        }
                         response.append("WIN! We won a match.");
-                    } else {
+                    }
+                }
+
+                if (changes.getNumberOfLosses() > 0) {
+                    sessionLosses += changes.getNumberOfLosses();
+
+                    for (int i = 0; i < changes.getNumberOfLosses(); i++) {
+                        if (i >= 1 || changes.getNumberOfWins() > 0) {
+                            response.append("\n");
+                        }
                         response.append("LOSS! We lost a match.");
                     }
-                } else if (numberOfChanges > 8) { // More than one match was played
-                    response.append("Multiple games were played.");
                 }
 
                 response.append(" We ")
@@ -171,6 +231,8 @@ public class WatchPointsTimerTask extends TimerTask {
 
                 log.debug("watchPoints - Sending response: {}", response.toString());
                 sendResponse(response.toString());
+
+                sendSessionWinLossResponse(false);
             }
         }
 
@@ -178,25 +240,46 @@ public class WatchPointsTimerTask extends TimerTask {
         lastMemberInfos = newMemberInfos;
     }
 
+    private void sendSessionWinLossResponse(boolean updatedValues) {
+        final StringBuilder response = new StringBuilder();
+
+        if (updatedValues) {
+            response.append("Win/loss was manually updated. ");
+        }
+
+        response.append("Session total win/loss is ")
+                .append(sessionWins)
+                .append("/")
+                .append(sessionLosses)
+                .append(".");
+
+        sendResponse(response.toString());
+    }
+
+    private Predicate<MemberInfo> memberNotInLastUpdate(List<MemberInfo> lastMemberInfos) {
+        return newMember -> lastMemberInfos.stream()
+                                           .noneMatch(last -> last.getName()
+                                                                  .equals(newMember.getName()));
+    }
+
     protected void sendResponse(String message) {
-        client.getChannelByID(402693205818081280L).sendMessage(message);
-        client.getChannelByID(BOT_TEST_TEXT_ID).sendMessage(message);
+        // MessageHelper.sendMessage(client.getChannelByID(402693205818081280L), message);
+        MessageHelper.sendMessage(client.getChannelByID(BOT_TEST_TEXT_ID), message);
     }
 
     private void sendErrorMessage() {
-        client.getChannelByID(BOT_TEST_TEXT_ID)
-              .sendMessage("Squibs points watcher ran into a problem and the timer was stopped. "
-                                   + "You can try !watchpoints to restart it. If that doesn't "
-                                   + "work - yell at Teo.");
+        MessageHelper.sendMessage(client.getChannelByID(BOT_TEST_TEXT_ID), ""
+                + "Squibs points watcher ran into a problem and the timer was stopped. "
+                + "You can try !watchpoints to restart it. If that doesn't work - yell at Teo.");
     }
 
     private void sendWarningMessage() {
-        client.getChannelByID(BOT_TEST_TEXT_ID)
-              .sendMessage("Failed to look up points this time, trying again.");
+        MessageHelper.sendMessage(client.getChannelByID(BOT_TEST_TEXT_ID),
+                                  "Failed to look up points this time, trying again.");
     }
 
     private void sendRecoveredMessage() {
-        client.getChannelByID(BOT_TEST_TEXT_ID)
-              .sendMessage("Looks like things are okay again.");
+        MessageHelper.sendMessage(client.getChannelByID(BOT_TEST_TEXT_ID),
+                                  "Looks like things are okay again.");
     }
 }

@@ -3,6 +3,7 @@ package taneltomson.discord.commands.listeners;
 
 import java.time.LocalDate;
 import java.util.Arrays;
+import java.util.Comparator;
 import java.util.List;
 import java.util.UUID;
 import java.util.function.Supplier;
@@ -17,6 +18,7 @@ import taneltomson.discord.commands.listeners.util.WatchPointsTimerTask;
 import taneltomson.discord.util.web.data.MemberInfo;
 
 import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.CoreMatchers.startsWith;
 import static org.junit.Assert.assertThat;
 import static org.mockito.Mockito.mock;
 
@@ -39,30 +41,134 @@ public class WatchPointsTimerTaskTest {
 
     @Test
     public void testWinningAMatch() {
-        assertResponseWasSent(deepCopyAndAddPointsToEight(10),
+        assertResponseWasSent(deepCopyAndAddPointsToEightTopRated(10),
                               "WIN! We won a match. We gained 80.0 points.");
     }
 
     @Test
     public void testLosingAMatch() {
-        assertResponseWasSent(deepCopyAndAddPointsToEight(-10),
+        assertResponseWasSent(deepCopyAndAddPointsToEightTopRated(-10),
                               "LOSS! We lost a match. We lost 80.0 points.");
     }
 
     @Test
     public void testLosingAMatchWithPlayersOnNoPoints() {
-        assertResponseWasSent(deepCopyAndAddPointsTo(-10, 7),
+        assertResponseWasSent(deepCopyAndAddPointsToHighestRated(-10, 7),
                               "LOSS! We lost a match. We lost 70.0 points.");
 
-        assertResponseWasSent(deepCopyAndAddPointsTo(-10, 1),
+        assertResponseWasSent(deepCopyAndAddPointsToHighestRated(-10, 1),
                               "LOSS! We lost a match. We lost 10.0 points.");
     }
 
     @Test
-    public void testMultipleMatchesPlayed() {
-        assertResponseWasSent(deepCopyAndAddPointsTo(20, 16),
-                              "Multiple games were played. We gained 320.0 points.");
+    public void testTwoMatchesWon() {
+        assertResponseWasSent(deepCopyAndAddPointsToHighestRated(20, 16), ""
+                + "WIN! We won a match.\n"
+                + "WIN! We won a match. We gained 320.0 points.");
     }
+
+    @Test
+    public void testThreeMatchesWon() {
+        assertResponseWasSentAndStartedWith(deepCopyAndAddPointsToHighestRated(20, 24), ""
+                + "WIN! We won a match.\n"
+                + "WIN! We won a match.\n"
+                + "WIN! We won a match. We gained ");
+    }
+
+    @Test
+    public void testTwoMatchesLost() {
+        assertResponseWasSentAndStartedWith(deepCopyAndAddPointsToHighestRated(-20, 16), ""
+                + "LOSS! We lost a match.\n"
+                + "LOSS! We lost a match. We lost ");
+    }
+
+    @Test
+    public void testThreeMatchesLost() {
+        assertResponseWasSentAndStartedWith(deepCopyAndAddPointsToHighestRated(-20, 24), ""
+                + "LOSS! We lost a match.\n"
+                + "LOSS! We lost a match.\n"
+                + "LOSS! We lost a match. We lost ");
+    }
+
+    @Test
+    public void testOneWonOneLost() {
+        final List<MemberInfo> newMemberInfos = deepCopy(memberInfosBefore);
+        addPointsToHighestRated(-10, 8, newMemberInfos);
+        addPointsToHighestRated(10, 8, newMemberInfos);
+
+        assertResponseWasSentAndStartedWith(newMemberInfos, ""
+                + "WIN! We won a match.\n"
+                + "LOSS! We lost a match. We lost ");
+    }
+
+    @Test
+    public void testOneWonTwoLost() {
+        final List<MemberInfo> newMemberInfos = deepCopy(memberInfosBefore)
+                .stream()
+                .sorted(Comparator.comparing(MemberInfo::getSquibsPoints).reversed())
+                .collect(Collectors.toList());
+
+        for (int i = 0; i < 18; i++) {
+            final MemberInfo memberInfo = newMemberInfos.get(i);
+
+            if (i < 8) {
+                // Add points to 8 to simulate win
+                memberInfo.setSquibsPoints(memberInfo.getSquibsPoints() + 10);
+            } else {
+                // Remove points from 18 - 8 = 10 to simulate 2 losses
+                memberInfo.setSquibsPoints(memberInfo.getSquibsPoints() - 20);
+                assertThat("Can't have negative points",
+                           memberInfo.getSquibsPoints() > 0, is(true));
+            }
+        }
+
+        assertResponseWasSentAndStartedWith(newMemberInfos, ""
+                + "WIN! We won a match.\n"
+                + "LOSS! We lost a match.\n"
+                + "LOSS! We lost a match. We lost ");
+    }
+
+    @Test
+    public void testTwoWonOneLost() {
+        final List<MemberInfo> newMemberInfos = deepCopy(memberInfosBefore)
+                .stream()
+                .sorted(Comparator.comparing(MemberInfo::getSquibsPoints).reversed())
+                .collect(Collectors.toList());
+
+        for (int i = 0; i < 21; i++) {
+            final MemberInfo memberInfo = newMemberInfos.get(i);
+
+            if (i < 5) {
+                // Remove points from 5 to simulate loss
+                memberInfo.setSquibsPoints(memberInfo.getSquibsPoints() - 20);
+                assertThat("Can't have negative points",
+                           memberInfo.getSquibsPoints() > 0, is(true));
+            } else {
+                // Add points to 21 - 5 = 16 to simulate 2 wins
+                memberInfo.setSquibsPoints(memberInfo.getSquibsPoints() + 20);
+            }
+        }
+
+        assertResponseWasSentAndStartedWith(newMemberInfos, ""
+                + "WIN! We won a match.\n"
+                + "WIN! We won a match.\n"
+                + "LOSS! We lost a match. We gained ");
+    }
+
+    @Test
+    public void testTwoMatchesLostWithSomePlayersOnZeroPoints() {
+        assertResponseWasSentAndStartedWith(deepCopyAndAddPointsToHighestRated(-20, 9), ""
+                + "LOSS! We lost a match.\n"
+                + "LOSS! We lost a match. We lost ");
+
+        assertResponseWasSentAndStartedWith(deepCopyAndAddPointsToHighestRated(-20, 15), ""
+                + "LOSS! We lost a match.\n"
+                + "LOSS! We lost a match. We lost ");
+    }
+
+    // TODO: Test players leaving/renaming at the same time as match was played?
+
+    // TODO: Test combos of multiple won/lost
 
     @Test
     public void testNewPlayerJoiningDoesNotBreakThings() {
@@ -92,10 +198,25 @@ public class WatchPointsTimerTaskTest {
         final MemberInfo memberWithPoints = getMemberWithPointsAmount(newMemberInfos, 100);
         newMemberInfos.remove(memberWithPoints);
 
+        assertResponseWasSentAndStartedWith(newMemberInfos, ""
+                + memberWithPoints.getDiscordEscapedName() + " is no longer in the squadron. "
+                + "They held 100 points. We lost ");
+    }
+
+    @Test
+    public void testPlayerChangingName() {
+        final List<MemberInfo> newMemberInfos = deepCopy(memberInfosBefore);
+        final MemberInfo memberWithPoints = getMemberWithPointsAmount(newMemberInfos, 100);
+
+        final String oldName = memberWithPoints.getDiscordEscapedName();
+        memberWithPoints.setName("New name");
+
+        // TODO/XXX: No need to report that points didn't change
         assertResponseWasSent(newMemberInfos,
-                              memberWithPoints.getDiscordEscapedName()
-                                      + " is no longer in the squadron. They held 100 points. We "
-                                      + "lost 100.0 points.");
+                              oldName + " has changed their in game name to New name. We lost no "
+                                      + "points.");
+
+        // TODO/XXX: Also a case when their points change?
     }
 
     private MemberInfo getMemberWithPointsAmount(List<MemberInfo> list, int points) {
@@ -115,8 +236,8 @@ public class WatchPointsTimerTaskTest {
      * @param pointsToAdd points to add (negative to subtract)
      * @return
      */
-    private List<MemberInfo> deepCopyAndAddPointsToEight(int pointsToAdd) {
-        return deepCopyAndAddPointsTo(pointsToAdd, 8);
+    private List<MemberInfo> deepCopyAndAddPointsToEightTopRated(int pointsToAdd) {
+        return deepCopyAndAddPointsToHighestRated(pointsToAdd, 8);
     }
 
     /**
@@ -128,24 +249,33 @@ public class WatchPointsTimerTaskTest {
      * @param numberOfPlayersToAddTo number of players whose points to alter
      * @return
      */
-    private List<MemberInfo> deepCopyAndAddPointsTo(int pointsToAdd, int numberOfPlayersToAddTo) {
+    private List<MemberInfo> deepCopyAndAddPointsToHighestRated(int pointsToAdd,
+                                                                int numberOfPlayersToAddTo) {
         final List<MemberInfo> newMemberInfos = deepCopy(memberInfosBefore);
 
+        return addPointsToHighestRated(pointsToAdd, numberOfPlayersToAddTo, newMemberInfos);
+    }
+
+    private List<MemberInfo> addPointsToHighestRated(int pointsToAdd, int numberOfPlayersToAddTo,
+                                                     List<MemberInfo> memberInfos) {
         final Supplier<Stream<MemberInfo>> supplier =
-                () -> newMemberInfos.stream()
-                                    .filter(i -> i.getSquibsPoints() >= -pointsToAdd)
-                                    .limit(numberOfPlayersToAddTo);
+                () -> memberInfos.stream()
+                                 .filter(i -> i.getSquibsPoints() >= -pointsToAdd)
+                                 .sorted(Comparator.comparingInt(MemberInfo::getSquibsPoints)
+                                                   .reversed())
+                                 .limit(numberOfPlayersToAddTo);
 
         if (supplier.get().count() < numberOfPlayersToAddTo) {
             throw new RuntimeException("Tests set up incorrectly - not enough suitable members to "
                                                + "apply points change to. Needed " +
-                                               numberOfPlayersToAddTo + " players.");
+                                               numberOfPlayersToAddTo + " players. Had " +
+                                               supplier.get().count() + " players.");
         }
 
         supplier.get()
                 .forEach(i -> i.setSquibsPoints(i.getSquibsPoints() + pointsToAdd));
 
-        return newMemberInfos;
+        return memberInfos;
     }
 
     private List<MemberInfo> createSquadronMemberInfos() {
@@ -154,6 +284,14 @@ public class WatchPointsTimerTaskTest {
                              createMemberWithPoints(100),
                              createMemberWithPoints(100),
                              createMemberWithPoints(100),
+                             createMemberWithPoints(90),
+                             createMemberWithPoints(90),
+                             createMemberWithPoints(90),
+                             createMemberWithPoints(90),
+                             createMemberWithPoints(90),
+                             createMemberWithPoints(90),
+                             createMemberWithPoints(90),
+                             createMemberWithPoints(90),
                              createMemberWithPoints(0),
                              createMemberWithPoints(0),
                              createMemberWithPoints(0),
@@ -162,6 +300,13 @@ public class WatchPointsTimerTaskTest {
                              createMemberWithPoints(0),
                              createMemberWithPoints(0),
                              createMemberWithPoints(0),
+                             createMemberWithPoints(100),
+                             createMemberWithPoints(100),
+                             createMemberWithPoints(100),
+                             createMemberWithPoints(100),
+                             createMemberWithPoints(100),
+                             createMemberWithPoints(100),
+                             createMemberWithPoints(100),
                              createMemberWithPoints(100),
                              createMemberWithPoints(100),
                              createMemberWithPoints(100),
@@ -175,6 +320,17 @@ public class WatchPointsTimerTaskTest {
             Assert.fail("Expected message '" + expectedResponse + "' to be sent.");
         } catch (TestableWatchPointsTimerTask.ResponseSentException e) {
             assertThat(e.getMessageSent(), is(expectedResponse));
+        }
+    }
+
+    private void assertResponseWasSentAndStartedWith(List<MemberInfo> memberInfosAfterWin,
+                                                     String expectedResponseStart) {
+        try {
+            watcher.watchPoints(memberInfosAfterWin);
+            Assert.fail("Expected message starting "
+                                + "with '" + expectedResponseStart + "' to be sent.");
+        } catch (TestableWatchPointsTimerTask.ResponseSentException e) {
+            assertThat(e.getMessageSent(), startsWith(expectedResponseStart));
         }
     }
 

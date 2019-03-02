@@ -42,7 +42,9 @@ public class SquibsPointsWatcher extends CommandListener {
                  TIMER_INITIAL_DELAY_MS / 1000, TIMER_PERIOD_MS / 1000);
         MessageHelper.sendMessage(client.getChannelByID(BOT_TEST_TEXT_ID),
                                   "Started to watch squibs points. Checking every "
-                                          + TIMER_PERIOD_MS / 1000 + " seconds.");
+                                          + TIMER_PERIOD_MS / 1000 + " seconds. "
+                                          + "Session wins/losses: " + timerTask.getSessionWins()
+                                          + "/" + timerTask.getSessionLosses());
     }
 
     @Override
@@ -61,6 +63,39 @@ public class SquibsPointsWatcher extends CommandListener {
             MessageHelper.sendMessage(client.getChannelByID(BOT_TEST_TEXT_ID),
                                       "Restarting SQB points watcher.");
             scheduleTimerTask();
+        } else if ("setwins".equals(command)) {
+            final Integer input = getIntFromArguments(arguments);
+
+            if (input != null) {
+                final Integer oldWins = timerTask.getSessionWins();
+                timerTask.setSessionWins(input);
+
+                MessageHelper.sendMessage(client.getChannelByID(BOT_TEST_TEXT_ID),
+                                          "Set session wins to " + input + " "
+                                                  + "(was " + oldWins + ").");
+            }
+        } else if ("setlosses".equals(command)) {
+            final Integer input = getIntFromArguments(arguments);
+
+            if (input != null) {
+                final Integer oldLosses = timerTask.getSessionLosses();
+                timerTask.setSessionLosses(input);
+
+                MessageHelper.sendMessage(client.getChannelByID(BOT_TEST_TEXT_ID),
+                                          "Set session losses to " + input + " "
+                                                  + "(was " + oldLosses + ").");
+            }
         }
+    }
+
+    private Integer getIntFromArguments(String arguments) {
+        Integer input = null;
+        try {
+            input = Integer.valueOf(arguments);
+        } catch (NumberFormatException e) {
+            MessageHelper.sendMessage(client.getChannelByID(BOT_TEST_TEXT_ID),
+                                      "Need a number dumbass.");
+        }
+        return input;
     }
 }
