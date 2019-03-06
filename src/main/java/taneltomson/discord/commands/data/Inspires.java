@@ -6,6 +6,7 @@ import java.util.List;
 
 
 public class Inspires {
+    // Inspires courtesy of Veghead (Veghead#7190 on Discord).
     public final static List<String> Inspires = Arrays.asList(
             "You miss 100% of the shots you don't take.",
             "Life is not about waiting for the storm to pass. It's about learning to dance in the"
@@ -39,12 +40,12 @@ public class Inspires {
             "Darth Teo \"Your powers are weak old man - now I am the master.\"",
             "You can't make an omelette without breaking a few eggs !",
             "Rage quitting is for the weak of mind.",
-            "Follow Bowrice's battle cry and kick ass - in the meta !",
+            "Follow BlackBunny's battle cry and kick ass - in the meta !",
             "Blood, toil, tears, sweat and carry the team - McBiggins still not impressed :(",
             "Its not about how often or how hard you fall. Its about how quickly you get back up.",
             "Stand strong in the storm and yell, \"Is that all you've got ?\"",
             "When you're dying all the time, just think of Adammear and know you're not alone.",
-            "The path to greatness is to form a squad with JustComeAndGoat.",
+            "The path to greatness is to form a squad with _wildweasel.",
             "Become a cold blooded assassin like Alpha and practice bombing.",
             "Confucius say \"Man with hole in pocket feel cocky all day\".",
             "When the chips are down, have a hug with Subaru.",
@@ -88,7 +89,7 @@ public class Inspires {
             "Embrace every defeat and feel empowered by the learnings.",
             "A Try Hard's glass is always half full. Never half empty.",
             "Never in the field of online gaming, has so much been achieved by such a rabble.",
-            "Clear the comms ! a10lover needs to speak incessantly.",
+            "Clear the comms ! Muttik needs to speak incessantly.",
             "Rumour has it there's been a sighting of the lesser spotted Gman.",
             "What's going to work ? TEAM WORK !",
             "United we stand, divided we fall.",
@@ -138,7 +139,7 @@ public class Inspires {
                     + "impossible.",
             "It is not enough to aim, you must hit.",
             "I am not a product of my circumstances. I am a product of my decisions.",
-            "Meet CyberOfficial; the man that never sleeps.",
+            "Meet Daool; the man that lives in the SQB waiting room !",
             "Never argue with fools. They just drag you down to their level and beat you with "
                     + "experience.",
             "Evil can only prevail when good men do nothing.",
@@ -164,13 +165,14 @@ public class Inspires {
             "CALL TO ARMS: Your Squadron needs YOU !",
             "Quack Quack, our Angel in the sky is here.",
             "Sleeping is cheating.",
-            "Who needs Rommel, Sun Tzu, or Genghis Khan - when you have Alex and Bowrice !",
-            "Be nice to Subaru, you wouldn't like him when he's angry......",
-            "Muddog here. Muddog ready. Muddog shoot bad enemy. Muddog good boy. "
-                    + "Muddog want biscuit.",
-            "Send out a search party. Gman is missing.",
-            "HiueTran is almost as mythical as Keyser Soze: "
-                    + "Very few cross his path and live to tell the tale.",
+            "Who needs Rommel, Sun Tzu, or Genghis Khan - when you have SteveTheTimeCat and "
+                    + "Shootex !",
+            "Be nice to Flightmare, you wouldn't like him when he's angry......",
+            "Muddog here. Muddog ready. Muddog shoot bad enemy. Muddog good boy. Muddog want "
+                    + "biscuit.",
+            "Send out a search party. AlphaVI is missing.",
+            "Lakeside is almost as mythical as Keyser Soze: Very few cross his path and live to "
+                    + "tell the tale.",
             "Peace is a lie, there is only passion.\n"
                     + "Through passion, I gain strength.\n"
                     + "Through strength, I gain power.\n"
@@ -178,11 +180,14 @@ public class Inspires {
                     + "Through victory, my chains are broken.\n"
                     + "The Force shall free me.",
             "Play to the Squadron ethos: Squad up, improve skills, have fun.",
-            "Learn from Blackdices - the man, the myth, the legend.",
+            "Learn from _wildweasel - the man, the myth, the legend.",
             "Be proud of the tag, participate, help your fellow Try Hards.",
             "'Alexbossiscool' For good reason.",
             "Study Awesome's philosophy of Sloth-ness. Be smart, be thorough, "
                     + "move slowly and leave nothing to chance (but don't eat fig leaves).",
             "Everyone needs the calming presence of DatguyWhoLikesCats.",
-            "The tow rope is used to stop St Claus wandering off alone.");
+            "The tow rope is used to stop Anw85 wandering off alone.",
+            "We win if we can just keep 'Minute Manram' alive for longer than a minute !",
+            "Leafy For Private 2019"
+    );
 }
