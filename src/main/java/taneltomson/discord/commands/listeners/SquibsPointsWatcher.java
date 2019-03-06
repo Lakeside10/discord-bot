@@ -22,7 +22,7 @@ public class SquibsPointsWatcher extends CommandListener {
     private static final int TIMER_PERIOD_MS = 1000 * 15;
 
     private final IDiscordClient client;
-    private final Timer timer = new Timer();
+    private Timer timer;
     private WatchPointsTimerTask timerTask;
 
     public SquibsPointsWatcher(IDiscordClient client) {
@@ -35,6 +35,7 @@ public class SquibsPointsWatcher extends CommandListener {
     }
 
     private void scheduleTimerTask() {
+        timer = new Timer();
         timerTask = new WatchPointsTimerTask(client);
         timer.schedule(timerTask, TIMER_INITIAL_DELAY_MS, TIMER_PERIOD_MS);
 
@@ -58,6 +59,9 @@ public class SquibsPointsWatcher extends CommandListener {
             if (timerTask != null) {
                 log.debug("Cancelling current timer task.");
                 timerTask.cancel();
+                if (timer != null) {
+                    timer.cancel();
+                }
             }
 
             MessageHelper.sendMessage(client.getChannelByID(BOT_TEST_TEXT_ID),
