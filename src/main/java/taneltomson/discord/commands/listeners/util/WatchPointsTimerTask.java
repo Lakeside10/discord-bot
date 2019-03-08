@@ -164,6 +164,7 @@ public class WatchPointsTimerTask extends TimerTask {
 
                 final Optional<MemberInfo> playerWithSamePointsNotInLastUpdate = newMemberInfos
                         .stream()
+                        .filter(newInfo -> newInfo.getSquibsPoints() != 0)
                         .filter(newInfo -> lastMemberInfo.getSquibsPoints()
                                                          .equals(newInfo.getSquibsPoints()))
                         .filter(memberNotInLastUpdate(lastMemberInfos))
