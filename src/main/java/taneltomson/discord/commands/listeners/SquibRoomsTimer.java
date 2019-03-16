@@ -46,6 +46,7 @@ public class SquibRoomsTimer {
     private static final List<String> airCommanderRoles = Arrays.asList("air commander");
     private static final List<String> groundCommanderRoles = Arrays.asList("ground commander");
     private static final List<String> airForceRoles = Arrays.asList("sqb air force");
+    private static final List<String> antiAirRoles = Arrays.asList("spaa", "spaa commander");
     private static ASquadType currentActiveASquadType = LOW;
 
 
@@ -114,20 +115,19 @@ public class SquibRoomsTimer {
                             additionalRoles += "HRM";
                         }
                         if (isAirCommander(user, guild)) {
-                            additionalRoles += !additionalRoles.isEmpty() ? ", " : "";
-                            additionalRoles += "AC";
+                            additionalRoles = addRole(additionalRoles, "AC");
                         }
                         if (isGroundCommander(user, guild)) {
-                            additionalRoles += !additionalRoles.isEmpty() ? ", " : "";
-                            additionalRoles += "GC";
+                            additionalRoles = addRole(additionalRoles, "GC");
                         }
                         if (isAirForce(user, guild)) {
-                            additionalRoles += !additionalRoles.isEmpty() ? ", " : "";
-                            additionalRoles += "AF";
+                            additionalRoles = addRole(additionalRoles, "AF");
                         }
                         if (isATeam(user, guild)) {
-                            additionalRoles += !additionalRoles.isEmpty() ? ", " : "";
-                            additionalRoles += "A-team";
+                            additionalRoles = addRole(additionalRoles, "A-team");
+                        }
+                        if (isAntiAir(user, guild)) {
+                            additionalRoles = addRole(additionalRoles, "AA");
                         }
 
                         if (!additionalRoles.isEmpty()) {
@@ -188,6 +188,12 @@ public class SquibRoomsTimer {
         }
     }
 
+    private String addRole(String additionalRoles, String name) {
+        additionalRoles += !additionalRoles.isEmpty() ? ", " : "";
+        additionalRoles += name;
+        return additionalRoles;
+    }
+
     private boolean isATeam(IUser user, IGuild guild) {
         return user.getRolesForGuild(guild).stream()
                    .anyMatch(role -> A_SQUAD_GROUP_IDS.get(currentActiveASquadType)
@@ -216,6 +222,11 @@ public class SquibRoomsTimer {
 
         return user.getRolesForGuild(guild).stream()
                    .anyMatch(role -> airForceRoles.contains(role.getName().toLowerCase()));
+    }
+
+    private boolean isAntiAir(IUser user, IGuild guild) {
+        return user.getRolesForGuild(guild).stream()
+                   .anyMatch(role -> antiAirRoles.contains(role.getName().toLowerCase()));
     }
 
     private void handleUserLeftWaitingRoom(IUser user) {
