@@ -189,5 +189,6 @@ public class Inspires {
             "The tow rope is used to stop Anw85 wandering off alone.",
             "We win if we can just keep 'Minute Manram' alive for longer than a minute !",
             "Leafy For Private 2019"
+            "UwU"
     );
 }
